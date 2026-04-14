@@ -1,0 +1,20 @@
+{
+  "name": "Cake Production Planner",
+  "short_name": "CakePlan",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e272e",
+  "theme_color": "#ff6b6b",
+  "icons": [
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Love_Cake_%2858169%29_-_The_Noun_Project.svg/192px-Love_Cake_%2858169%29_-_The_Noun_Project.svg.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "https://upload.wikimedia.org/wikipedia/commons/thumb/8/87/Love_Cake_%2858169%29_-_The_Noun_Project.svg/512px-Love_Cake_%2858169%29_-_The_Noun_Project.svg.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>蛋糕生產計畫 (Cake Production PWA)</title>
+    
+    <!-- PWA Settings -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#ff6b6b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="CakePlan">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #ff6b6b;
+            --secondary: #feca57;
+            --bg: #1e272e;
+            --surface: rgba(255, 255, 255, 0.1);
+            --surface-hover: rgba(255, 255, 255, 0.15);
+            --text-main: #f5f6fa;
+            --text-muted: #dcdde1;
+            --success: #2ed573;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Noto Sans TC', sans-serif;
+            background: linear-gradient(135deg, #2f3640 0%, #1e272e 100%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 20px;
+        }
+
+        .glass-container {
+            background: var(--surface);
+            backdrop-filter: blur(16px);
+            -webkit-backdrop-filter: blur(16px);
+            border-radius: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 30px;
+            width: 100%;
+            max-width: 600px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.5s ease-out;
+            margin-bottom: 20px;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        h1, h2 {
+            text-align: center;
+            margin-bottom: 20px;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        h1 { font-size: 28px; }
+        h2 { font-size: 20px; margin-top: 10px; }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-radius: 10px;
+            overflow: hidden;
+        }
+
+        .tab {
+            flex: 1;
+            padding: 10px 5px;
+            text-align: center;
+            background: rgba(0,0,0,0.3);
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 14px;
+            transition: all 0.3s;
+        }
+
+        .tab.active {
+            background: var(--primary);
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+        }
+
+        .tab-content.active {
+            display: block;
+            animation: fadeIn 0.3s ease-out;
+        }
+
+        /* Flavor Cards */
+        .flavor-card {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .flavor-card h3 {
+            color: var(--secondary);
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+            padding-bottom: 10px;
+        }
+
+        .grid-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            margin-bottom: 15px;
+        }
+
+        label {
+            font-size: 14px;
+            margin-bottom: 8px;
+            color: var(--text-muted);
+        }
+
+        input, select {
+            background: rgba(0, 0, 0, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            border-radius: 8px;
+            color: white;
+            font-size: 16px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+        
+        select option {
+            color: black;
+        }
+
+        input:focus, select:focus {
+            border-color: var(--primary);
+        }
+
+        button {
+            width: 100%;
+            background: linear-gradient(45deg, var(--primary), var(--secondary));
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 18px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-weight: bold;
+            margin-top: 10px;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        button.success-btn {
+            background: linear-gradient(45deg, var(--success), #20bf6b);
+        }
+
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
+        }
+
+        .result-card {
+            margin-top: 20px;
+            background: rgba(0, 0, 0, 0.3);
+            border-radius: 15px;
+            padding: 20px;
+            opacity: 0;
+            display: none;
+        }
+
+        .result-card.active {
+            opacity: 1;
+            display: block;
+            animation: fadeIn 0.4s ease;
+        }
+
+        .plan-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px dashed rgba(255,255,255,0.2);
+            font-size: 16px;
+        }
+        .plan-item:last-child {
+            border-bottom: none;
+        }
+
+        .total-batches {
+            font-size: 24px;
+            color: var(--primary);
+            font-weight: bold;
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 15px;
+            border-top: 2px solid rgba(255,255,255,0.1);
+        }
+
+        .toast {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--success);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 30px;
+            font-weight: bold;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            opacity: 0;
+            transition: opacity 0.3s;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .toast.show {
+            opacity: 1;
+        }
+
+        /* History Table Styles */
+        .history-wrapper {
+            overflow-x: auto;
+            margin-top: 15px;
+        }
+        .history-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 14px;
+            background: rgba(0,0,0,0.2);
+            border-radius: 10px;
+        }
+        .history-table th, .history-table td {
+            padding: 12px 8px;
+            text-align: center;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        .history-table th {
+            background: rgba(0,0,0,0.4);
+            color: var(--secondary);
+            font-weight: bold;
+        }
+        .history-table tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+        .flavor-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            font-size: 12px;
+            white-space: nowrap;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glass-container">
+        <h1>🍰 每日蛋糕生產計畫</h1>
+        
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('plan-tab')">📅 規劃預估 (Plan)</div>
+            <div class="tab" onclick="switchTab('record-tab')">📝 打烊紀錄 (Record)</div>
+            <div class="tab" onclick="switchTab('history-tab')">📖 歷史總覽 (History)</div>
+        </div>
+
+        <!-- 規劃預估 (Plan) 標籤頁 -->
+        <div id="plan-tab" class="tab-content active">
+            <h2>計算未來產量</h2>
+            
+            <div class="input-group">
+                <label>選擇計畫日期:</label>
+                <input type="date" id="plan-date" onchange="updatePlanFlavors()">
+            </div>
+
+            <div class="grid-2">
+                <div class="input-group">
+                    <label>預計假日增量 (Holiday %):</label>
+                    <select id="holiday-multiplier">
+                        <option value="1.0">平常日 (100%)</option>
+                        <option value="1.1">小幅增加 (110%)</option>
+                        <option value="1.2">中幅增加 (120%)</option>
+                        <option value="1.5">節日大增 (150%)</option>
+                    </select>
+                </div>
+
+                <div class="input-group">
+                    <label>當天新人數量 (New Joiners):</label>
+                    <input type="number" id="new-joiners" value="0" min="0" max="10">
+                </div>
+            </div>
+
+            <button onclick="calculatePlan()">計算建議產量</button>
+
+            <div class="result-card" id="plan-result">
+                <h3 style="color:var(--secondary); text-align:center; margin-bottom: 15px;">📊 建議生產分配</h3>
+                <div id="plan-list"></div>
+                <div class="total-batches" id="plan-total"></div>
+                <div style="text-align: center; font-size: 12px; color: var(--text-muted); margin-top: 5px;">(每種口味依各自需求獨立計算，均為無條件進位湊滿 18 顆/批)</div>
+            </div>
+        </div>
+
+        <!-- 今日打烊紀錄 (Record) 標籤頁 -->
+        <div id="record-tab" class="tab-content">
+            <h2>儲存或修改打烊數據</h2>
+            
+            <div class="input-group">
+                <label>選擇紀錄日期 (可回溯過往日期):</label>
+                <input type="date" id="record-date" onchange="loadRecordForDate()">
+            </div>
+            
+            <div id="date-info" style="text-align: center; margin-bottom: 10px; color: var(--text-muted); font-size: 14px;"></div>
+            
+            <div class="input-group" style="align-items: center; flex-direction: row; justify-content: center; gap: 10px; background: rgba(0,0,0,0.2); padding: 10px; border-radius: 10px;">
+                <input type="checkbox" id="record-is-holiday" style="width:20px; height:20px;">
+                <label for="record-is-holiday" style="margin:0; font-size:16px;">標記此日為假日 (Holiday) - 將不納入平常日平均</label>
+            </div>
+
+            <div id="record-flavors-container" style="margin-top: 15px;">
+                <!-- Javascript將動態產生今日口味卡片 -->
+            </div>
+
+            <button class="success-btn" onclick="saveRecord()">儲存紀錄至系統</button>
+        </div>
+
+        <!-- 歷史紀錄 (History) 標籤頁 -->
+        <div id="history-tab" class="tab-content">
+            <h2>打烊歷史總覽</h2>
+            <p style="text-align:center; font-size:14px; color:var(--text-muted);">列出您曾儲存過的所有生產與剩餘數據</p>
+            
+            <div style="text-align: center; margin-bottom: 10px;">
+                <button onclick="injectSampleData()" style="font-size:14px; padding:8px 15px; width: auto; background: rgba(0,0,0,0.3); border: 1px solid rgba(255,255,255,0.2);">📥 載入 3-4 月範例資料</button>
+            </div>
+            
+            <div class="history-wrapper">
+                <table class="history-table">
+                    <thead>
+                        <tr>
+                            <th>日期</th>
+                            <th>口味</th>
+                            <th>製造</th>
+                            <th>5pm剩</th>
+                            <th>打烊剩</th>
+                            <th>完售期</th>
+                        </tr>
+                    </thead>
+                    <tbody id="history-tbody">
+                        <!-- Javascript injecting rows here -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="toast" id="toast">✅ 儲存成功！</div>
+
+    <script>
+        const BATCH_SIZE = 18;
+        const FLAVOR_NAMES = {
+            original: '原味 (Original)',
+            seasonal: '時令 (Seasonal)',
+            matcha: '抹茶 (Matcha)',
+            chocolate: '巧克力 (Chocolate)'
+        };
+
+        // 從 localStorage 讀取紀錄
+        let cakeHistory = JSON.parse(localStorage.getItem('cakeHistory')) || [];
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById(tabId).classList.add('active');
+
+            if (tabId === 'history-tab') {
+                renderHistoryTable();
+            }
+        }
+
+        function getActiveFlavors(weekday) {
+            let active = ['original', 'seasonal'];
+            if (weekday === 1 || weekday === 3) active.push('matcha');     // Mon/Wed
+            if (weekday === 2 || weekday === 4) active.push('chocolate');  // Tue/Thu
+            return active;
+        }
+
+        // ========================
+        // Record Tab Logic
+        // ========================
+        function initRecordTab() {
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000; 
+            const dateStr = (new Date(Date.now() - tzoffset)).toISOString().slice(0, 10);
+            document.getElementById('record-date').value = dateStr;
+            loadRecordForDate();
+        }
+
+        function loadRecordForDate() {
+            const dateStr = document.getElementById('record-date').value;
+            if (!dateStr) return;
+
+            const parts = dateStr.split('-');
+            const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const weekday = targetDate.getDay();
+            const days = ['星期日', '星期一', '星期二', '星期三', '星期四', '星期五', '星期六'];
+            
+            document.getElementById('date-info').innerText = `${dateStr} (${days[weekday]})`;
+            
+            const existingRecord = cakeHistory.find(r => r.date === dateStr);
+            if (existingRecord) {
+                document.getElementById('record-is-holiday').checked = existingRecord.isHoliday;
+            } else {
+                document.getElementById('record-is-holiday').checked = false;
+            }
+
+            const activeFlavors = getActiveFlavors(weekday);
+            const container = document.getElementById('record-flavors-container');
+            container.innerHTML = '';
+
+            activeFlavors.forEach(flavor => {
+                let existingF = null;
+                if (existingRecord && existingRecord.flavors && existingRecord.flavors[flavor]) {
+                    existingF = existingRecord.flavors[flavor];
+                }
+
+                container.innerHTML += `
+                    <div class="flavor-card" id="card-${flavor}">
+                        <h3>🍰 ${FLAVOR_NAMES[flavor]}</h3>
+                        <div class="grid-2">
+                            <div class="input-group">
+                                <label>生產總數 (Created):</label>
+                                <input type="number" id="${flavor}-created" value="${existingF ? existingF.created : 0}" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label>5pm 剩餘 (Rem @ 5pm):</label>
+                                <input type="number" id="${flavor}-rem5" value="${existingF ? existingF.rem5pm : 0}" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label>打烊剩餘 (Rem @ Close):</label>
+                                <input type="number" id="${flavor}-remClose" value="${existingF ? existingF.remClose : 0}" min="0">
+                            </div>
+                            <div class="input-group">
+                                <label>完售時間 (Sold Out Time):</label>
+                                <input type="time" id="${flavor}-soldOut" value="${existingF && existingF.soldOutTime ? existingF.soldOutTime : ''}">
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+        }
+
+        function showToast() {
+            const toast = document.getElementById('toast');
+            toast.classList.add('show');
+            setTimeout(() => toast.classList.remove('show'), 3000);
+        }
+
+        function saveRecord() {
+            const dateStr = document.getElementById('record-date').value;
+            if (!dateStr) return alert("請選擇日期");
+            
+            const parts = dateStr.split('-');
+            const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const weekday = targetDate.getDay();
+            const isHoliday = document.getElementById('record-is-holiday').checked;
+            
+            const activeFlavors = getActiveFlavors(weekday);
+            let flavorsData = {};
+
+            activeFlavors.forEach(flavor => {
+                flavorsData[flavor] = {
+                    created: parseInt(document.getElementById(`${flavor}-created`).value || 0),
+                    rem5pm: parseInt(document.getElementById(`${flavor}-rem5`).value || 0),
+                    remClose: parseInt(document.getElementById(`${flavor}-remClose`).value || 0),
+                    soldOutTime: document.getElementById(`${flavor}-soldOut`).value
+                };
+            });
+
+            const record = {
+                date: dateStr,
+                weekday: weekday,
+                isHoliday: isHoliday,
+                flavors: flavorsData
+            };
+
+            // 覆蓋當天既有紀錄
+            cakeHistory = cakeHistory.filter(r => r.date !== dateStr);
+            cakeHistory.push(record);
+            
+            // 排序 (日期新到舊)
+            cakeHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            localStorage.setItem('cakeHistory', JSON.stringify(cakeHistory));
+
+            showToast();
+        }
+
+        // ========================
+        // History Tab Logic
+        // ========================
+        function renderHistoryTable() {
+            const tbody = document.getElementById('history-tbody');
+            tbody.innerHTML = '';
+            
+            if (cakeHistory.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align:center; padding: 20px;">尚無任何歷史紀錄，請至「打烊紀錄」分頁建立。</td></tr>`;
+                return;
+            }
+
+            const days = ['日', '一', '二', '三', '四', '五', '六'];
+
+            cakeHistory.forEach(record => {
+                const isHol = record.isHoliday ? '<br><span style="color:var(--primary); font-size:12px;">(假日)</span>' : '';
+                const dateLabel = `${record.date}<br>(${days[record.weekday]})${isHol}`;
+                const flavors = Object.keys(record.flavors);
+                
+                flavors.forEach((flavor, index) => {
+                    const fData = record.flavors[flavor];
+                    
+                    // Show date only on first row of the date group
+                    let tdDate = '';
+                    if (index === 0) {
+                        tdDate = `<td rowspan="${flavors.length}" style="border-right: 1px solid rgba(255,255,255,0.1); border-bottom: 2px solid rgba(255,255,255,0.3); vertical-align: middle;">${dateLabel}</td>`;
+                    }
+                    
+                    let trStyle = index === flavors.length - 1 ? 'border-bottom: 2px solid rgba(255,255,255,0.3);' : '';
+
+                    tbody.innerHTML += `
+                        <tr style="${trStyle}">
+                            ${tdDate}
+                            <td><span class="flavor-badge">${FLAVOR_NAMES[flavor].split(' ')[0]}</span></td>
+                            <td>${fData.created}</td>
+                            <td>${fData.rem5pm}</td>
+                            <td>${fData.remClose}</td>
+                            <td>${fData.soldOutTime || '-'}</td>
+                        </tr>
+                    `;
+                });
+            });
+        }
+
+        function injectSampleData() {
+            if (confirm("這將會加入 3 月 1 日至昨天 (4月12日) 的模擬日資料，如已有同天的舊資料會被覆蓋，確定載入？")) {
+                const tzoffset = (new Date()).getTimezoneOffset() * 60000; 
+                // Set loop range: Mar 1 to yesterday
+                let startDate = new Date(2026, 2, 1); // March 1 (Months are 0-indexed)
+                let endDate = new Date(2026, 3, 12);  // April 12
+                
+                for (let d = new Date(startDate); d <= endDate; d.setDate(d.getDate() + 1)) {
+                    let dLocal = new Date(d - tzoffset);
+                    const dateStr = dLocal.toISOString().slice(0, 10);
+                    const weekday = d.getDay();
+                    const isHoliday = (weekday === 0 || weekday === 6); // Set weekends as mock holiday
+                    
+                    const activeFlavors = getActiveFlavors(weekday);
+                    let flavorsData = {};
+
+                    activeFlavors.forEach(flavor => {
+                        const baseCreated = flavor === 'original' ? 25 : (flavor === 'seasonal' ? 18 : 12);
+                        // Random elements
+                        const created = baseCreated + Math.floor(Math.random() * 6);
+                        const rem5 = Math.floor(Math.random() * 4);
+                        const isSoldOut = Math.random() > 0.75;  // 25% chance of early sellout
+                        const remClose = isSoldOut ? 0 : Math.floor(Math.random() * (rem5 + 1));
+                        const soldOutTime = isSoldOut ? ['16:00', '16:30', '17:15', '17:45'][Math.floor(Math.random()*4)] : '';
+
+                        flavorsData[flavor] = {
+                            created: created,
+                            rem5pm: rem5,
+                            remClose: remClose,
+                            soldOutTime: soldOutTime
+                        };
+                    });
+
+                    const record = {
+                        date: dateStr,
+                        weekday: weekday,
+                        isHoliday: isHoliday,
+                        flavors: flavorsData
+                    };
+
+                    // Prevent duplicate if user re-clicks
+                    cakeHistory = cakeHistory.filter(r => r.date !== dateStr);
+                    cakeHistory.push(record);
+                }
+                
+                // Sort descending
+                cakeHistory.sort((a,b) => new Date(b.date) - new Date(a.date));
+                localStorage.setItem('cakeHistory', JSON.stringify(cakeHistory));
+                
+                alert("✅ 範例資料已成功載入！");
+                renderHistoryTable(); // refresh table
+            }
+        }
+
+        // ========================
+        // Plan Tab Logic
+        // ========================
+        function initPlanTab() {
+            const tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000; 
+            const localISOTime = (new Date(tomorrow - tzoffset)).toISOString().slice(0, 10);
+            
+            document.getElementById('plan-date').value = localISOTime;
+        }
+
+        function estimateDemand(created, remClose, soldOutTime) {
+            if (soldOutTime && soldOutTime.trim() !== '') {
+                return Math.max(created, created * 1.2);
+            }
+            return Math.max(0, created - remClose);
+        }
+
+        function getFlavorAverage(targetWeekday, flavor) {
+            const nonHolidayData = cakeHistory.filter(d => 
+                d.weekday === targetWeekday && 
+                !d.isHoliday && 
+                d.flavors && 
+                d.flavors[flavor]
+            );
+
+            const recentThree = nonHolidayData.slice(-3);
+            
+            if (recentThree.length === 0) return 9; // 預設單一口味半批
+
+            const total = recentThree.reduce((sum, record) => {
+                const fData = record.flavors[flavor];
+                return sum + estimateDemand(fData.created, fData.remClose, fData.soldOutTime);
+            }, 0);
+
+            return total / recentThree.length;
+        }
+
+        function updatePlanFlavors() {}
+
+        function calculatePlan() {
+            const dateStr = document.getElementById('plan-date').value;
+            if (!dateStr) return alert("請選擇日期");
+            
+            const parts = dateStr.split('-');
+            const targetDate = new Date(parts[0], parts[1] - 1, parts[2]);
+            const targetWeekday = targetDate.getDay();
+            
+            const activeFlavors = getActiveFlavors(targetWeekday);
+            
+            const holidayMultiplier = parseFloat(document.getElementById('holiday-multiplier').value);
+            const joiners = parseInt(document.getElementById('new-joiners').value || 0);
+
+            let joinerMultiplier = 1.0;
+            if (joiners > 0) {
+                joinerMultiplier = 0.90 - (0.05 * (joiners - 1));
+                joinerMultiplier = Math.max(0, joinerMultiplier);
+            }
+
+            let totalBatchesGlobal = 0;
+            let totalCakesGlobal = 0;
+            let html = '';
+
+            activeFlavors.forEach(flavor => {
+                const baseAvg = getFlavorAverage(targetWeekday, flavor);
+                
+                // 平常日平均需求度 -> 套用假日倍率 -> 套用新人係數
+                const adjustedDemand = baseAvg * holidayMultiplier * joinerMultiplier;
+                
+                // 每個口味獨立算批次
+                const batchesForFlavor = Math.ceil(adjustedDemand / BATCH_SIZE);
+                const cakesProduced = batchesForFlavor * BATCH_SIZE;
+
+                totalBatchesGlobal += batchesForFlavor;
+                totalCakesGlobal += cakesProduced;
+
+                html += `
+                    <div class="plan-item">
+                        <span>${FLAVOR_NAMES[flavor]}</span>
+                        <span style="color:var(--secondary); font-weight:bold;">${batchesForFlavor} 批 (${cakesProduced} 顆)</span>
+                    </div>
+                `;
+            });
+
+            document.getElementById('plan-list').innerHTML = html;
+            document.getElementById('plan-total').innerText = `總計: ${totalBatchesGlobal} 批 (${totalCakesGlobal} 顆)`;
+            document.getElementById('plan-result').classList.add('active');
+        }
+
+        initRecordTab();
+        initPlanTab();
+
+        // Register Service Worker
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(reg => console.log('Service Worker 註冊成功!', reg))
+                    .catch(err => console.log('Service Worker 註冊失敗:', err));
+            });
+        }
+    </script>
+</body>
+</html>
